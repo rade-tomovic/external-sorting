@@ -1,6 +1,6 @@
 ﻿namespace Altium.ExternalSorting.Sorter;
 
-public class Class1
+public class ExternalSorter
 {
-
+    
 }
