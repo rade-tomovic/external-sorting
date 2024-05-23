@@ -5,9 +5,9 @@ using FluentAssertions;
 
 public class FileSplitHandlerTests
 {
-    private const string TestFilePath = "test.txt";
-    private const long FileSize = 1024 * 1024 * 100;
-    private const int SplitFileSize = 1024 * 1024 * 10;
+    private const string TestFilePath = "split_test.txt";
+    private const long FileSize = 1024 * 1024 * 10;
+    private const int SplitFileSize = 1024 * 1024 * 1;
 
     [Fact]
     public async Task SplitFile_WhenCalledWithLargeFile_ShouldSplitFileIntoSmallerFiles()
@@ -17,7 +17,7 @@ public class FileSplitHandlerTests
         var options = new SplitOptions { SplitFileSize = SplitFileSize, LineSeparator = "\n" };
         var fileSplitHandler = new FileSplitHandler(options);
 
-        List<string> result = [];
+        IReadOnlyCollection<string> result = [];
 
         try
         {
@@ -35,7 +35,6 @@ public class FileSplitHandlerTests
     [Fact]
     public async Task SplitFile_WhenCalledWithEmptyFile_ShouldNotCreateAnyFiles()
     {
-        // Arrange
         await File.WriteAllTextAsync(TestFilePath, string.Empty);
 
         var options = new SplitOptions { SplitFileSize = SplitFileSize, LineSeparator = "\n" };
@@ -43,7 +42,7 @@ public class FileSplitHandlerTests
 
         try
         {
-            List<string> result = await fileSplitHandler.SplitFileAsync(TestFilePath);
+            IReadOnlyCollection<string> result = await fileSplitHandler.SplitFileAsync(TestFilePath);
 
             result.Should().BeEmpty();
         }

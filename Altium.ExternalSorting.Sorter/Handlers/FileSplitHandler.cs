@@ -12,7 +12,7 @@ public class FileSplitHandler
         _options = options;
     }
 
-    public async Task<List<string>> SplitFileAsync(string sourceFilePath)
+    public async Task<IReadOnlyCollection<string>> SplitFileAsync(string sourceFilePath)
     {
         List<string> splitFilePaths = [];
 
@@ -52,7 +52,7 @@ public class FileSplitHandler
             await writer.DisposeAsync();
         }
 
-        return splitFilePaths;
+        return splitFilePaths.AsReadOnly();
     }
 
     private string GetSplitFilePath(string sourceFilePath, int fileIndex)

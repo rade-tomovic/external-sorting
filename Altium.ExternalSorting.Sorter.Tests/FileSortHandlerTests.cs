@@ -7,9 +7,9 @@ namespace Altium.ExternalSorting.Sorter.Tests;
 
 public class FileSortHandlerTests
 {
-    private const string TestFilePath = "test.txt";
-    private const long FileSize = 1024 * 1024 * 100;
-    private const int SplitFileSize = 1024 * 1024 * 10;
+    private const string TestFilePath = "sort_test.txt";
+    private const long FileSize = 1024 * 1024 * 10;
+    private const int SplitFileSize = 1024 * 1024 * 1;
 
     [Fact]
     public async Task SortFiles_WhenCalledWithUnsortedFiles_ShouldSortFiles()
@@ -17,19 +17,23 @@ public class FileSortHandlerTests
         Result _ = new FileBuilder().WithFilePath(TestFilePath).WithFileSize(FileSize).Build();
         var splitOptions = new SplitOptions { SplitFileSize = SplitFileSize, LineSeparator = "\n" };
         var fileSplitHandler = new FileSplitHandler(splitOptions);
-        var fileSortHandler = new FileSortHandler();
-        List<string> splitFiles = [];
+
+        var sortOptions = new SortOptions { Comparer = new LineComparer(), LineSorter = new LineSorter() };
+        var fileSortHandler = new FileSortHandler(sortOptions);
+        IReadOnlyCollection<string> splitFiles = [];
+        IReadOnlyCollection<string> sortedFiles = [];
 
         try
         {
             splitFiles = await fileSplitHandler.SplitFileAsync(TestFilePath);
-            IReadOnlyCollection<string> sortedFiles = await fileSortHandler.SortFiles(splitFiles);
+            sortedFiles = await fileSortHandler.SortFiles(splitFiles);
 
             sortedFiles.Should().HaveCount(splitFiles.Count);
 
             foreach (string sortedFile in sortedFiles)
             {
                 string[] sortedLines = await File.ReadAllLinesAsync(sortedFile);
+
                 for (int i = 0; i < sortedLines.Length - 1; i++)
                 {
                     var comparer = new LineComparer();
@@ -40,9 +44,7 @@ public class FileSortHandlerTests
         }
         finally
         {
-            File.Delete(TestFilePath);
-            foreach (string filePath in splitFiles)
-                File.Delete(filePath);
+            CleanupFiles(splitFiles, sortedFiles);
         }
     }
 
@@ -52,13 +54,15 @@ public class FileSortHandlerTests
         await File.WriteAllTextAsync(TestFilePath, string.Empty);
         var splitOptions = new SplitOptions { SplitFileSize = SplitFileSize, LineSeparator = "\n" };
         var fileSplitHandler = new FileSplitHandler(splitOptions);
-        var fileSortHandler = new FileSortHandler();
-        List<string> splitFiles = [];
+        var sortOptions = new SortOptions { Comparer = new LineComparer(), LineSorter = new LineSorter() };
+        var fileSortHandler = new FileSortHandler(sortOptions);
+        IReadOnlyCollection<string> splitFiles = [];
+        IReadOnlyCollection<string> sortedFiles = [];
 
         try
         {
             splitFiles = await fileSplitHandler.SplitFileAsync(TestFilePath);
-            IReadOnlyCollection<string> sortedFiles = await fileSortHandler.SortFiles(splitFiles);
+            sortedFiles = await fileSortHandler.SortFiles(splitFiles);
 
             sortedFiles.Should().HaveCount(splitFiles.Count);
 
@@ -70,9 +74,18 @@ public class FileSortHandlerTests
         }
         finally
         {
-            File.Delete(TestFilePath);
-            foreach (string filePath in splitFiles)
-                File.Delete(filePath);
+            CleanupFiles(splitFiles, sortedFiles);
         }
+    }
+
+    private static void CleanupFiles(IReadOnlyCollection<string> splitFiles, IReadOnlyCollection<string> sortedFiles)
+    {
+        File.Delete(TestFilePath);
+
+        foreach (string filePath in splitFiles)
+            File.Delete(filePath);
+
+        foreach (string filePath in sortedFiles)
+            File.Delete(filePath);
     }
 }

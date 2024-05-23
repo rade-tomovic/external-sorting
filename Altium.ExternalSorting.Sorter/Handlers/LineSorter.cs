@@ -2,12 +2,14 @@
 
 namespace Altium.ExternalSorting.Sorter.Handlers;
 
-public class LineSorter
+public class LineSorter : ILineSorter
 {
-    public string[] SortLines(IEnumerable<string>? lines)
+    public IEnumerable<string> SortLines(IEnumerable<string>? lines, IComparer<string> comparer)
     {
         if (lines != null)
-            return lines.OrderBy(line => line, new LineComparer()).ToArray();
+            return lines
+                .OrderBy(line => line, comparer)
+                .ToArray();
 
         Log.Warning("The lines parameter is null.");
 

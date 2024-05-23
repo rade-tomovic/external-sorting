@@ -10,7 +10,7 @@ public class LineSorterTests
     [Fact]
     public void SortLines_WhenCalledWithNull_ShouldReturnEmptyArray()
     {
-        string[] result = _lineSorter.SortLines(null);
+        IEnumerable<string> result = _lineSorter.SortLines(null, new LineComparer());
 
         result.Should().BeEmpty();
     }
@@ -33,7 +33,7 @@ public class LineSorterTests
             "30432. Something something something"
         ];
 
-        string[] result = _lineSorter.SortLines(unsortedLines);
+        IEnumerable<string> result = _lineSorter.SortLines(unsortedLines, new LineComparer());
 
         result.Should().Equal(expectedSortedLines);
     }
@@ -54,7 +54,7 @@ public class LineSorterTests
             "1000. Banana"
         ];
 
-        string[] result = _lineSorter.SortLines(unsortedLines);
+        IEnumerable<string> result = _lineSorter.SortLines(unsortedLines, new LineComparer());
 
         result.Should().Equal(expectedSortedLines);
     }

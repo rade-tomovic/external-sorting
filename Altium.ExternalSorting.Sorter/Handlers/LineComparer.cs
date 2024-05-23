@@ -4,27 +4,21 @@ namespace Altium.ExternalSorting.Sorter.Handlers;
 
 public class LineComparer : IComparer<string>
 {
-    public int Compare(string? x, string? y)
+    public int Compare(string x, string y)
     {
-        if (x == null || y == null)
+        int xIndex = x.IndexOf(". ");
+        int yIndex = y.IndexOf(". ");
+
+        if (xIndex == -1 || yIndex == -1)
         {
-            Log.Warning("One or both of the strings being compared are null.");
             return 0;
         }
 
-        string[] xParts = x.Split(". ", 2);
-        string[] yParts = y.Split(". ", 2);
-
-        if (xParts.Length < 2 || yParts.Length < 2)
-        {
-            Log.Warning("One or both of the strings being compared do not contain a '. ' separator.");
-            return 0;
-        }
-
-        int stringComparison = string.Compare(xParts[1], yParts[1], StringComparison.Ordinal);
+        int stringComparison = string.Compare(x.Substring(xIndex + 2), y.Substring(yIndex + 2), StringComparison.Ordinal);
 
         return stringComparison != 0 ?
             stringComparison :
-            int.Parse(xParts[0]).CompareTo(int.Parse(yParts[0]));
+            int.Parse(x.Substring(0, xIndex)).CompareTo(int.Parse(y.Substring(0, yIndex)));
     }
 }
+
