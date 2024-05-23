@@ -42,12 +42,12 @@ public class FileBuilder
                 fileStream.Write(bytes, 0, bytes.Length);
             }
 
-            return new("File created successfully.", _filePath, true);
+            return new Result("File created successfully.", _filePath, true);
         }
         catch (Exception ex)
         {
             Log.Error(ex, "An error occurred while building the file.");
-            return new($"An error occurred: {ex.Message}", null, false);
+            return new Result($"An error occurred: {ex.Message}", null, false);
         }
     }
 }

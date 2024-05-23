@@ -7,9 +7,11 @@ public class LineSorter : ILineSorter
     public IEnumerable<string> SortLines(IEnumerable<string>? lines, IComparer<string> comparer)
     {
         if (lines != null)
-            return lines
-                .OrderBy(line => line, comparer)
-                .ToArray();
+        {
+            var lineList = lines.ToList();
+            lineList.Sort(comparer);
+            return lineList;
+        }
 
         Log.Warning("The lines parameter is null.");
 

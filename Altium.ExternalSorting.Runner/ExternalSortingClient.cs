@@ -1,4 +1,5 @@
-﻿using Altium.ExternalSorting.Sorter.Handlers;
+﻿using System.Collections.Concurrent;
+using Altium.ExternalSorting.Sorter.Handlers;
 using Altium.ExternalSorting.Sorter.Options;
 
 namespace Altium.ExternalSorting.Runner;
@@ -8,11 +9,13 @@ public class ExternalSortingClient
     private readonly FileMergeHandler _fileMergeHandler;
     private readonly FileSortHandler _fileSortHandler;
     private readonly FileSplitHandler _fileSplitHandler;
+    private readonly ConcurrentBag<Task<string>> _sortTasks = [];
 
     public ExternalSortingClient()
     {
         var splitOptions = new SplitOptions { SplitFileSize = 1024 * 1024 * 100, LineSeparator = "\n" };
         _fileSplitHandler = new FileSplitHandler(splitOptions);
+        _fileSplitHandler.OnFileWritten += HandleFileWritten;
 
         var sortOptions = new SortOptions { Comparer = new LineComparer(), LineSorter = new LineSorter() };
         _fileSortHandler = new FileSortHandler(sortOptions);
@@ -20,12 +23,17 @@ public class ExternalSortingClient
         _fileMergeHandler = new FileMergeHandler();
     }
 
-    public async Task<string> SortFileAsync(string inputFilePath, string outputFilePath)
+    private void HandleFileWritten(string filepath)
     {
-        IReadOnlyCollection<string> splitFiles = await _fileSplitHandler.SplitFileAsync(inputFilePath);
-        IReadOnlyCollection<string> sortedFiles = await _fileSortHandler.SortFiles(splitFiles);
-        string mergedFilePath = await _fileMergeHandler.MergeFilesAsync(sortedFiles, outputFilePath);
+        Task<string> sortTask = _fileSortHandler.SortFile(filepath, CancellationToken.None);
 
-        return mergedFilePath;
+        _sortTasks.Add(sortTask);
+    }
+
+    public async Task SortFileAsync(string inputFilePath, string outputFilePath)
+    {
+        await _fileSplitHandler.SplitFileAsync(inputFilePath);
+        string[] results = await Task.WhenAll(_sortTasks);
+        string mergedFilePath = await _fileMergeHandler.MergeFilesAsync(results, outputFilePath);
     }
 }
