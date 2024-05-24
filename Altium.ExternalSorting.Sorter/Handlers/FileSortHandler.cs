@@ -1,35 +1,37 @@
 ﻿using Altium.ExternalSorting.Sorter.Options;
 using Serilog;
-using System.Collections.Concurrent;
 
 namespace Altium.ExternalSorting.Sorter.Handlers;
 
-public class FileSortHandler(SortOptions options)
+public class FileSortHandler
 {
-    public async Task<IReadOnlyCollection<string>> SortFiles(IReadOnlyCollection<string> filePaths)
+    private readonly SortOptions _options;
+
+    public FileSortHandler(SortOptions options)
     {
-        Log.Information("Starting to sort files.");
+        _options = options;
+        Log.Information("{fileSortHandler} initialized with options: {@options}", nameof(FileSortHandler), options);
+    }
 
-        ConcurrentBag<string> sortedFilePaths = new();
+    public async Task<string> SortFile(string filePath, CancellationToken cancellationToken)
+    {
+        Log.Information("Starting to sort file: {filePath}", filePath);
 
-        await Parallel.ForEachAsync(filePaths, async (filePath, cancellationToken) =>
-        {
-            Log.Information($"Reading lines from file: {filePath}");
+        string[] lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
+        Log.Information("Read {count} lines from file: {filePath}", lines.Length, filePath);
 
-            string[] lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
-            IEnumerable<string> sortedLines = options.LineSorter.SortLines(lines, options.Comparer);
-            string sortedFilePath = Path.Combine(Path.GetDirectoryName(filePath),
-                Path.GetFileNameWithoutExtension(filePath) + "_sorted" + Path.GetExtension(filePath));
+        IEnumerable<string> sortedLines = _options.LineSorter.SortLines(lines, _options.Comparer);
+        string sortedFilePath = Path.Combine(Path.GetDirectoryName(filePath),
+            Path.GetFileNameWithoutExtension(filePath) + "_sorted" + Path.GetExtension(filePath));
 
-            Log.Information($"Writing sorted lines to file: {sortedFilePath}");
+        Log.Information("Writing sorted lines to file: {sortedFilePath}", sortedFilePath);
 
-            await File.WriteAllLinesAsync(sortedFilePath, sortedLines, cancellationToken);
-            sortedFilePaths.Add(sortedFilePath);
+        await File.WriteAllLinesAsync(sortedFilePath, sortedLines, cancellationToken);
+        Log.Information("Finished writing sorted lines to file: {sortedFilePath}", sortedFilePath);
+
+        if(File.Exists(filePath))
             File.Delete(filePath);
-        });
 
-        Log.Information("Finished sorting files.");
-        
-        return sortedFilePaths.ToList().AsReadOnly();
+        return sortedFilePath;
     }
 }

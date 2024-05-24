@@ -1,6 +1,4 @@
-﻿using Serilog;
-
-namespace Altium.ExternalSorting.Sorter.Handlers;
+﻿namespace Altium.ExternalSorting.Sorter.Handlers;
 
 public class LineComparer : IComparer<string>
 {
@@ -9,16 +7,18 @@ public class LineComparer : IComparer<string>
         int xIndex = x.IndexOf(". ");
         int yIndex = y.IndexOf(". ");
 
-        if (xIndex == -1 || yIndex == -1)
-        {
-            return 0;
-        }
+        if (xIndex == -1 || yIndex == -1) return 0;
 
-        int stringComparison = string.Compare(x.Substring(xIndex + 2), y.Substring(yIndex + 2), StringComparison.Ordinal);
+        ReadOnlySpan<char> xSpan = x.AsSpan(xIndex + 2);
+        ReadOnlySpan<char> ySpan = y.AsSpan(yIndex + 2);
 
-        return stringComparison != 0 ?
-            stringComparison :
-            int.Parse(x.Substring(0, xIndex)).CompareTo(int.Parse(y.Substring(0, yIndex)));
+        int stringComparison = xSpan.CompareTo(ySpan, StringComparison.Ordinal);
+
+        if (stringComparison != 0) return stringComparison;
+
+        if (int.TryParse(x.AsSpan(0, xIndex), out int xNumber) && int.TryParse(y.AsSpan(0, yIndex), out int yNumber))
+            return xNumber.CompareTo(yNumber);
+
+        return 0;
     }
 }
-

@@ -1,4 +1,5 @@
-﻿using Altium.ExternalSorting.FileGenerator;
+﻿using System.Collections.Concurrent;
+using Altium.ExternalSorting.FileGenerator;
 using Altium.ExternalSorting.Sorter.Handlers;
 using Altium.ExternalSorting.Sorter.Options;
 using FluentAssertions;
@@ -8,29 +9,33 @@ namespace Altium.ExternalSorting.Sorter.Tests;
 public class FileMergeHandlerTests
 {
     private const string TestFilePath = "merge_test.txt";
-    private const long FileSize = 1024 * 1024 * 100;
-    private const int SplitFileSize = 1024 * 1024 * 10;
+    private const long FileSize = 1024 * 1024 * 10;
+    private const int SplitFileSize = 1024 * 1024 * 1;
+    private readonly FileSplitHandler _fileSplitHandler;
+    private readonly ConcurrentBag<Task<string>> _sortTasks = [];
+
+    public FileMergeHandlerTests()
+    {
+        _fileSplitHandler = new FileSplitHandler(new SplitOptions { SplitFileSize = SplitFileSize, LineSeparator = "\n" });
+        _fileSplitHandler.OnFileWritten += HandleFileWritten;
+    }
 
     [Fact]
     public async Task MergeFiles_WhenCalledWithSortedFiles_ShouldMergeFiles()
     {
         Result _ = new FileBuilder().WithFilePath(TestFilePath).WithFileSize(FileSize).Build();
-        var splitOptions = new SplitOptions { SplitFileSize = SplitFileSize, LineSeparator = "\n" };
-        var fileSplitHandler = new FileSplitHandler(splitOptions);
-
-        var sortOptions = new SortOptions { Comparer = new LineComparer(), LineSorter = new LineSorter() };
-        var fileSortHandler = new FileSortHandler(sortOptions);
-        var fileMergeHandler = new FileMergeHandler();
+        string? mergedFilePath = "merged.txt";
+        var fileMergeHandler = new FileMergeHandler(new MergeOptions { BufferSize = 1024, OutputFile = mergedFilePath });
 
         IReadOnlyCollection<string> splitFiles = [];
         IReadOnlyCollection<string> sortedFiles = [];
-        string mergedFilePath = "";
+        
 
         try
         {
-            splitFiles = await fileSplitHandler.SplitFileAsync(TestFilePath);
-            sortedFiles = await fileSortHandler.SortFiles(splitFiles);
-            mergedFilePath = await fileMergeHandler.MergeFilesAsync(sortedFiles, "merged.txt");
+            splitFiles = await _fileSplitHandler.SplitFileAsync(TestFilePath);
+            sortedFiles = (await Task.WhenAll(_sortTasks)).AsReadOnly();
+            mergedFilePath = await fileMergeHandler.MergeFilesAsync(sortedFiles.ToList());
 
             string[] mergedLines = await File.ReadAllLinesAsync(mergedFilePath);
 
@@ -45,9 +50,21 @@ public class FileMergeHandlerTests
         {
             CleanupFiles(splitFiles, sortedFiles);
 
-            //if (File.Exists(mergedFilePath))
-            //    File.Delete(mergedFilePath);
+            if (File.Exists(mergedFilePath))
+                File.Delete(mergedFilePath);
         }
+    }
+
+    public void Dispose()
+    {
+        _fileSplitHandler.OnFileWritten -= HandleFileWritten;
+    }
+
+    private void HandleFileWritten(string filepath)
+    {
+        var fileSortHandler = new FileSortHandler(new SortOptions { Comparer = new LineComparer(), LineSorter = new LineSorter() });
+        Task<string> sortTask = fileSortHandler.SortFile(filepath, CancellationToken.None);
+        _sortTasks.Add(sortTask);
     }
 
     private static void CleanupFiles(IReadOnlyCollection<string> splitFiles, IReadOnlyCollection<string> sortedFiles)

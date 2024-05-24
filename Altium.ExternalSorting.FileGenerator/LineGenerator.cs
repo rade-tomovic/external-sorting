@@ -25,5 +25,8 @@ public class LineGenerator
         _randomString = _contentGenerator.Invoke();
     }
 
-    public string Build() => $"{_orderNumber}. {_randomString}";
+    public string Build()
+    {
+        return $"{_orderNumber}. {_randomString}";
+    }
 }

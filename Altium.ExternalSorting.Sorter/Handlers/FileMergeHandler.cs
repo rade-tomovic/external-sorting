@@ -1,17 +1,27 @@
-﻿using Altium.ExternalSorting.Sorter.Handlers;
+﻿using Altium.ExternalSorting.Sorter.Options;
+using Serilog;
+
+namespace Altium.ExternalSorting.Sorter.Handlers;
 
 public class FileMergeHandler
 {
-    private const int BufferSize = 1024; // Number of lines to read from each file at a time
+    private readonly MergeOptions _options;
 
-    public async Task<string> MergeFilesAsync(IReadOnlyCollection<string> filePaths, string outputFilePath)
+    public FileMergeHandler(MergeOptions options)
+    {
+        _options = options;
+        Log.Information("{fileMergeHandler} initialized with options: {@options}", nameof(FileMergeHandler), options);
+    }
+
+    public async Task<string?> MergeFilesAsync(List<string> filePaths)
     {
         PriorityQueue<(string Line, StreamReader Stream), string> queue = new(new LineComparer());
         Dictionary<StreamReader, Queue<string>> buffers = new();
 
+        Log.Information("Starting to merge {count} files into {outputFilePath}", filePaths.Count, _options.OutputFile);
+
         try
         {
-            // Initialize streams and buffers for each file
             foreach (string filePath in filePaths)
             {
                 var stream = new StreamReader(filePath);
@@ -27,9 +37,8 @@ public class FileMergeHandler
                 }
             }
 
-            await using var outputStream = new StreamWriter(outputFilePath);
+            await using var outputStream = new StreamWriter(_options.OutputFile);
 
-            // Process lines from files
             while (queue.Count > 0)
             {
                 (string line, StreamReader stream) = queue.Dequeue();
@@ -38,28 +47,32 @@ public class FileMergeHandler
                 Queue<string> buffer = buffers[stream];
                 if (!buffer.Any()) await FillBufferAsync(stream, buffer);
 
-                // Only enqueue an item from the buffer if it is not empty
-                if (buffer.Any())
-                {
-                    string nextLine = buffer.Dequeue();
-                    queue.Enqueue((nextLine, stream), nextLine);
-                }
+                if (!buffer.Any())
+                    continue;
+
+                string nextLine = buffer.Dequeue();
+                queue.Enqueue((nextLine, stream), nextLine);
             }
         }
         finally
         {
-            foreach (StreamReader stream in buffers.Keys) stream.Dispose();
+            foreach (StreamReader stream in buffers.Keys)
+                stream.Dispose();
         }
 
-        return outputFilePath;
+        Log.Information("Finished merging files into {outputFilePath}", _options.OutputFile);
+
+        return _options.OutputFile;
     }
 
-    private static async Task FillBufferAsync(StreamReader stream, Queue<string> buffer)
+    private async Task FillBufferAsync(StreamReader stream, Queue<string> buffer)
     {
-        for (int i = 0; i < BufferSize && !stream.EndOfStream; i++)
+        for (int i = 0; i < _options.BufferSize && !stream.EndOfStream; i++)
         {
             string? line = await stream.ReadLineAsync();
-            if (line != null) buffer.Enqueue(line);
+
+            if (line != null)
+                buffer.Enqueue(line);
         }
     }
 }

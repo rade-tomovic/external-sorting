@@ -1,31 +1,46 @@
-﻿using Altium.ExternalSorting.Sorter.Handlers;
-using Altium.ExternalSorting.Sorter.Options;
+﻿using System.Collections.Concurrent;
+using Altium.ExternalSorting.Sorter.Handlers;
 
 namespace Altium.ExternalSorting.Runner;
 
-public class ExternalSortingClient
+public class ExternalSortingClient : IDisposable
 {
-    private readonly FileMergeHandler _fileMergeHandler;
+    private readonly RunnerOptions _options;
     private readonly FileSortHandler _fileSortHandler;
     private readonly FileSplitHandler _fileSplitHandler;
+    private readonly ConcurrentBag<Task<string>> _sortTasks = [];
 
-    public ExternalSortingClient()
+    public ExternalSortingClient(RunnerOptions options)
     {
-        var splitOptions = new SplitOptions { SplitFileSize = 1024 * 1024 * 100, LineSeparator = "\n" };
-        _fileSplitHandler = new FileSplitHandler(splitOptions);
-
-        var sortOptions = new SortOptions { Comparer = new LineComparer(), LineSorter = new LineSorter() };
-        _fileSortHandler = new FileSortHandler(sortOptions);
-
-        _fileMergeHandler = new FileMergeHandler();
+        _options = options;
+        _fileSplitHandler = new FileSplitHandler(options.SplitOptions);
+        _fileSplitHandler.OnFileWritten += HandleFileWritten;
+        _fileSortHandler = new FileSortHandler(options.SortOptions);
     }
 
-    public async Task<string> SortFileAsync(string inputFilePath, string outputFilePath)
+    public async Task<string?> SortFileAsync()
     {
-        IReadOnlyCollection<string> splitFiles = await _fileSplitHandler.SplitFileAsync(inputFilePath);
-        IReadOnlyCollection<string> sortedFiles = await _fileSortHandler.SortFiles(splitFiles);
-        string mergedFilePath = await _fileMergeHandler.MergeFilesAsync(sortedFiles, outputFilePath);
+        await _fileSplitHandler.SplitFileAsync(_options.InputFilePath);
+        string[] sortedFilePaths = await Task.WhenAll(_sortTasks);
+        var fileMergeHandler = new FileMergeHandler(_options.MergeOptions);
 
-        return mergedFilePath;
+        string? result = await fileMergeHandler.MergeFilesAsync(sortedFilePaths.ToList());
+
+        foreach (string filePath in sortedFilePaths)
+            File.Delete(filePath);
+
+        return result;
+    }
+
+    public void Dispose()
+    {
+        _fileSplitHandler.OnFileWritten -= HandleFileWritten;
+    }
+
+    private void HandleFileWritten(string filepath)
+    {
+        Task<string> sortTask = _fileSortHandler.SortFile(filepath, CancellationToken.None);
+
+        _sortTasks.Add(sortTask);
     }
 }
