@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altium.ExternalSorting.Sort
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altium.ExternalSorting.FileGenerator.Tests", "Altium.ExternalSorting.FileGenerator.Tests\Altium.ExternalSorting.FileGenerator.Tests.csproj", "{4E5A61D7-A1F3-4E63-8999-D3D430C178CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Altium.ExternalSorting.Runner", "Altium.ExternalSorting.Runner\Altium.ExternalSorting.Runner.csproj", "{FA209294-69C5-43D1-8431-CF140B105DA0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Altium.ExternalSorting.Runner", "Altium.ExternalSorting.Runner\Altium.ExternalSorting.Runner.csproj", "{FA209294-69C5-43D1-8431-CF140B105DA0}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{399E3C0E-FEDC-45D4-B1EA-00A2F44FB114}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,6 +44,10 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{591DA8A5-99F9-4C4D-A20A-9F42E18290C7} = {399E3C0E-FEDC-45D4-B1EA-00A2F44FB114}
+		{4E5A61D7-A1F3-4E63-8999-D3D430C178CA} = {399E3C0E-FEDC-45D4-B1EA-00A2F44FB114}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D118A5CA-6029-4BB6-B1EF-FDA9E8984F18}

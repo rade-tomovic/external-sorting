@@ -29,6 +29,9 @@ public class FileSortHandler
         await File.WriteAllLinesAsync(sortedFilePath, sortedLines, cancellationToken);
         Log.Information("Finished writing sorted lines to file: {sortedFilePath}", sortedFilePath);
 
+        if(File.Exists(filePath))
+            File.Delete(filePath);
+
         return sortedFilePath;
     }
 }
