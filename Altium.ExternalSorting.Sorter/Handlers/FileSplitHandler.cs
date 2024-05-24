@@ -13,10 +13,10 @@ public class FileSplitHandler
     public FileSplitHandler(SplitOptions options)
     {
         _options = options;
-        Log.Information("FileSplitHandler initialized with options: {@options}", options);
+        Log.Information("{fileSplitHandler} initialized with options: {@options}", nameof(FileSplitHandler), options);
     }
 
-    public event FileWrittenHandler OnFileWritten;
+    public event FileWrittenHandler? OnFileWritten;
 
     public async Task<IReadOnlyCollection<string>> SplitFileAsync(string sourceFilePath)
     {

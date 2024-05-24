@@ -17,9 +17,7 @@ public class LineComparer : IComparer<string>
         if (stringComparison != 0) return stringComparison;
 
         if (int.TryParse(x.AsSpan(0, xIndex), out int xNumber) && int.TryParse(y.AsSpan(0, yIndex), out int yNumber))
-        {
             return xNumber.CompareTo(yNumber);
-        }
 
         return 0;
     }

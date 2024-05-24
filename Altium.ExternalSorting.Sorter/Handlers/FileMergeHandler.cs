@@ -1,16 +1,24 @@
-﻿using Altium.ExternalSorting.Sorter.Handlers;
+﻿using Altium.ExternalSorting.Sorter.Options;
 using Serilog;
+
+namespace Altium.ExternalSorting.Sorter.Handlers;
 
 public class FileMergeHandler
 {
-    private const int BufferSize = 1024;
+    private readonly MergeOptions _options;
 
-    public async Task<string> MergeFilesAsync(IReadOnlyCollection<string> filePaths, string outputFilePath)
+    public FileMergeHandler(MergeOptions options)
+    {
+        _options = options;
+        Log.Information("{fileMergeHandler} initialized with options: {@options}", nameof(FileMergeHandler), options);
+    }
+
+    public async Task<string?> MergeFilesAsync(List<string> filePaths)
     {
         PriorityQueue<(string Line, StreamReader Stream), string> queue = new(new LineComparer());
         Dictionary<StreamReader, Queue<string>> buffers = new();
 
-        Log.Information("Starting to merge {count} files into {outputFilePath}", filePaths.Count, outputFilePath);
+        Log.Information("Starting to merge {count} files into {outputFilePath}", filePaths.Count, _options.OutputFile);
 
         try
         {
@@ -29,7 +37,7 @@ public class FileMergeHandler
                 }
             }
 
-            await using var outputStream = new StreamWriter(outputFilePath);
+            await using var outputStream = new StreamWriter(_options.OutputFile);
 
             while (queue.Count > 0)
             {
@@ -52,14 +60,14 @@ public class FileMergeHandler
                 stream.Dispose();
         }
 
-        Log.Information("Finished merging files into {outputFilePath}", outputFilePath);
+        Log.Information("Finished merging files into {outputFilePath}", _options.OutputFile);
 
-        return outputFilePath;
+        return _options.OutputFile;
     }
 
-    private static async Task FillBufferAsync(StreamReader stream, Queue<string> buffer)
+    private async Task FillBufferAsync(StreamReader stream, Queue<string> buffer)
     {
-        for (int i = 0; i < BufferSize && !stream.EndOfStream; i++)
+        for (int i = 0; i < _options.BufferSize && !stream.EndOfStream; i++)
         {
             string? line = await stream.ReadLineAsync();
 

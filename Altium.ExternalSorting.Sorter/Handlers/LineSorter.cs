@@ -8,7 +8,7 @@ public class LineSorter : ILineSorter
     {
         if (lines != null)
         {
-            var lineList = lines.ToList();
+            List<string> lineList = lines.ToList();
             lineList.Sort(comparer);
             return lineList;
         }

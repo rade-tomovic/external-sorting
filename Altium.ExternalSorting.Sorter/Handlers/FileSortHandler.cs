@@ -1,26 +1,16 @@
-﻿using System.Collections.Concurrent;
-using Altium.ExternalSorting.Sorter.Options;
+﻿using Altium.ExternalSorting.Sorter.Options;
 using Serilog;
 
 namespace Altium.ExternalSorting.Sorter.Handlers;
 
-public class FileSortHandler(SortOptions options)
+public class FileSortHandler
 {
-    public async Task<IReadOnlyCollection<string>> SortFiles(IReadOnlyCollection<string> filePaths)
+    private readonly SortOptions _options;
+
+    public FileSortHandler(SortOptions options)
     {
-        Log.Information("Starting to sort {count} files.", filePaths.Count);
-
-        ConcurrentBag<string> sortedFilePaths = new();
-
-        await Parallel.ForEachAsync(filePaths, async (filePath, cancellationToken) =>
-        {
-            string result = await SortFile(filePath, cancellationToken);
-            sortedFilePaths.Add(result);
-        });
-
-        Log.Information("Finished sorting files. Sorted {count} files.", sortedFilePaths.Count);
-
-        return sortedFilePaths.ToList().AsReadOnly();
+        _options = options;
+        Log.Information("{fileSortHandler} initialized with options: {@options}", nameof(FileSortHandler), options);
     }
 
     public async Task<string> SortFile(string filePath, CancellationToken cancellationToken)
@@ -30,7 +20,7 @@ public class FileSortHandler(SortOptions options)
         string[] lines = await File.ReadAllLinesAsync(filePath, cancellationToken);
         Log.Information("Read {count} lines from file: {filePath}", lines.Length, filePath);
 
-        IEnumerable<string> sortedLines = options.LineSorter.SortLines(lines, options.Comparer);
+        IEnumerable<string> sortedLines = _options.LineSorter.SortLines(lines, _options.Comparer);
         string sortedFilePath = Path.Combine(Path.GetDirectoryName(filePath),
             Path.GetFileNameWithoutExtension(filePath) + "_sorted" + Path.GetExtension(filePath));
 
